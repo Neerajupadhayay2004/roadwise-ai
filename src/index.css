@@ -226,6 +226,26 @@
   }
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
 }
@@ -247,6 +267,51 @@
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+/* Leaflet overrides */
+.leaflet-container {
+  font-family: var(--font-display);
+  background: hsl(var(--background));
+}
+
+.leaflet-popup-content-wrapper {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+}
+
+.leaflet-popup-tip {
+  background: hsl(var(--card));
+}
+
+.leaflet-control-attribution {
+  background: hsl(var(--card) / 0.8) !important;
+  color: hsl(var(--muted-foreground)) !important;
+  font-size: 10px;
+}
+
+.leaflet-control-attribution a {
+  color: hsl(var(--primary)) !important;
+}
+
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.iit-marker {
+  background: transparent !important;
+  border: none !important;
 }
 
 /* Damage type colors */
