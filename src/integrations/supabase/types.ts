@@ -14,7 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      damage_reports: {
+        Row: {
+          address: string | null
+          capture_method: string | null
+          confidence_score: number | null
+          created_at: string
+          detections: Json | null
+          device_info: string | null
+          id: string
+          image_url: string
+          latitude: number | null
+          location_name: string | null
+          longitude: number | null
+          notes: string | null
+          overall_condition: string
+          priority: string | null
+          road_type: string | null
+          status: string | null
+          summary: Json | null
+          thumbnail_url: string | null
+          total_damages: number
+          updated_at: string
+          weather_conditions: string | null
+        }
+        Insert: {
+          address?: string | null
+          capture_method?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          detections?: Json | null
+          device_info?: string | null
+          id?: string
+          image_url: string
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
+          notes?: string | null
+          overall_condition?: string
+          priority?: string | null
+          road_type?: string | null
+          status?: string | null
+          summary?: Json | null
+          thumbnail_url?: string | null
+          total_damages?: number
+          updated_at?: string
+          weather_conditions?: string | null
+        }
+        Update: {
+          address?: string | null
+          capture_method?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          detections?: Json | null
+          device_info?: string | null
+          id?: string
+          image_url?: string
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
+          notes?: string | null
+          overall_condition?: string
+          priority?: string | null
+          road_type?: string | null
+          status?: string | null
+          summary?: Json | null
+          thumbnail_url?: string | null
+          total_damages?: number
+          updated_at?: string
+          weather_conditions?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

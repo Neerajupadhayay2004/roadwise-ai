@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo } from "react";
-import { Scan, AlertTriangle, Info, ChevronRight, Camera, MapPin, BarChart3 } from "lucide-react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { Scan, AlertTriangle, Info, ChevronRight, Camera, MapPin, BarChart3, Database, History, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Header } from "@/components/Header";
@@ -9,26 +9,11 @@ import { DamageClassLegend } from "@/components/DamageClassLegend";
 import { CameraCapture } from "@/components/CameraCapture";
 import { MapView } from "@/components/MapView";
 import { AdvancedStats } from "@/components/AdvancedStats";
+import { ReportsHistory } from "@/components/ReportsHistory";
+import { ReportDetail } from "@/components/ReportDetail";
+import { YoloDatasetInfo } from "@/components/YoloDatasetInfo";
+import { useDamageReports, DamageReport, Detection, Summary } from "@/hooks/useDamageReports";
 import { toast } from "sonner";
-
-interface Detection {
-  class_id: number;
-  class_name: string;
-  x_center: number;
-  y_center: number;
-  width: number;
-  height: number;
-  confidence: number;
-  severity: string;
-  description: string;
-}
-
-interface Summary {
-  total_damages: number;
-  overall_condition: string;
-  priority_level: string;
-  recommendation: string;
-}
 
 interface AnalysisResult {
   detections: Detection[];
@@ -50,13 +35,42 @@ const Index = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState<AnalysisResult | null>(null);
-  const [analysisCount, setAnalysisCount] = useState(0);
-  const [totalDetections, setTotalDetections] = useState(0);
   const [showCamera, setShowCamera] = useState(false);
-  const [allDetections, setAllDetections] = useState<Detection[]>([]);
-  const [damageMarkers, setDamageMarkers] = useState<DamageMarker[]>([]);
+  const [selectedReport, setSelectedReport] = useState<DamageReport | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Calculate stats
+  // Use the damage reports hook
+  const { 
+    reports, 
+    isLoading: isLoadingReports, 
+    stats, 
+    uploadImage, 
+    createReport,
+    updateReportStatus 
+  } = useDamageReports();
+
+  // Calculate damage markers from reports
+  const damageMarkers = useMemo(() => {
+    return reports
+      .filter(r => r.latitude && r.longitude)
+      .flatMap(report => 
+        report.detections.map((d, i) => ({
+          id: `${report.id}-${i}`,
+          lat: report.latitude!,
+          lng: report.longitude!,
+          type: d.class_name,
+          severity: d.severity,
+          timestamp: new Date(report.created_at),
+          description: d.description,
+        }))
+      );
+  }, [reports]);
+
+  // Calculate stats from all detections
+  const allDetections = useMemo(() => {
+    return reports.flatMap(r => r.detections);
+  }, [reports]);
+
   const damagesByType = useMemo(() => {
     const counts: Record<string, number> = {};
     allDetections.forEach((d) => {
@@ -70,6 +84,24 @@ const Index = () => {
     return allDetections.reduce((sum, d) => sum + d.confidence, 0) / allDetections.length;
   }, [allDetections]);
 
+  // Get user location on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        () => {
+          // Default to IIT Bombay
+          setUserLocation({ lat: 19.1334, lng: 72.9133 });
+        }
+      );
+    }
+  }, []);
+
   const handleImageSelect = useCallback((imageData: string) => {
     setSelectedImage(imageData);
     setResults(null);
@@ -79,14 +111,9 @@ const Index = () => {
     setSelectedImage(imageData);
     setResults(null);
     setShowCamera(false);
-    
-    // Update the image uploader
-    if (typeof window !== "undefined" && (window as any).__setImageFromCamera) {
-      (window as any).__setImageFromCamera(imageData);
-    }
   }, []);
 
-  const analyzeImage = useCallback(async () => {
+  const analyzeImage = useCallback(async (captureMethod: string = "upload") => {
     if (!selectedImage) {
       toast.error("Please upload an image first");
       return;
@@ -95,6 +122,13 @@ const Index = () => {
     setIsAnalyzing(true);
     
     try {
+      // First upload the image to storage
+      toast.loading("Uploading image...", { id: "upload" });
+      const imageUrl = await uploadImage(selectedImage);
+      toast.dismiss("upload");
+
+      // Analyze the image
+      toast.loading("Analyzing road damage...", { id: "analyze" });
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-road`,
         {
@@ -106,6 +140,7 @@ const Index = () => {
           body: JSON.stringify({ image: selectedImage }),
         }
       );
+      toast.dismiss("analyze");
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -124,27 +159,32 @@ const Index = () => {
       
       if (data.success) {
         const detections = data.detections || [];
+        const summary = data.summary;
+        
         setResults({
           detections,
-          summary: data.summary,
+          summary,
         });
-        setAnalysisCount(prev => prev + 1);
-        setTotalDetections(prev => prev + detections.length);
-        setAllDetections(prev => [...prev, ...detections]);
 
-        // Add markers to map (simulate locations around IIT Bombay)
-        if (detections.length > 0) {
-          const newMarkers: DamageMarker[] = detections.map((d: Detection, i: number) => ({
-            id: `${Date.now()}-${i}`,
-            lat: 19.1334 + (Math.random() - 0.5) * 0.01,
-            lng: 72.9133 + (Math.random() - 0.5) * 0.01,
-            type: d.class_name,
-            severity: d.severity,
-            timestamp: new Date(),
-            description: d.description,
-          }));
-          setDamageMarkers(prev => [...prev, ...newMarkers]);
-        }
+        // Calculate average confidence
+        const avgConfidence = detections.length > 0
+          ? detections.reduce((sum: number, d: Detection) => sum + d.confidence, 0) / detections.length
+          : 0;
+
+        // Save the report to database
+        await createReport({
+          latitude: userLocation?.lat,
+          longitude: userLocation?.lng,
+          location_name: "IIT Bombay Campus",
+          image_url: imageUrl,
+          overall_condition: summary.overall_condition,
+          total_damages: detections.length,
+          priority: summary.priority_level,
+          confidence_score: avgConfidence,
+          detections,
+          summary,
+          capture_method: captureMethod,
+        });
         
         if (detections.length > 0) {
           toast.warning(`Detected ${detections.length} road damage${detections.length > 1 ? 's' : ''}`);
@@ -160,7 +200,7 @@ const Index = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [selectedImage]);
+  }, [selectedImage, uploadImage, createReport, userLocation]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -173,6 +213,14 @@ const Index = () => {
           onClose={() => setShowCamera(false)}
         />
       )}
+
+      {/* Report Detail Modal */}
+      {selectedReport && (
+        <ReportDetail
+          report={selectedReport}
+          onClose={() => setSelectedReport(null)}
+        />
+      )}
       
       <main className="container mx-auto px-4 py-6">
         {/* Scanner Tab */}
@@ -182,17 +230,17 @@ const Index = () => {
             <section className="text-center space-y-4 py-6">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm text-primary font-medium">
                 <AlertTriangle className="w-4 h-4" />
-                AI-Powered Road Damage Detection
+                AI-Powered Road Damage Detection • IIT Bombay
               </div>
               
               <h2 className="text-2xl md:text-4xl font-bold text-foreground leading-tight">
                 Detect Road Damage with
                 <br />
-                <span className="text-gradient">Computer Vision AI</span>
+                <span className="text-gradient">YOLOv8 + Vision AI</span>
               </h2>
               
               <p className="text-muted-foreground max-w-xl mx-auto">
-                Upload or capture road images. Our AI will detect and classify cracks, potholes, and surface damages.
+                Upload or capture road images. Our AI detects and classifies cracks, potholes, and surface damages using the RDD2022 dataset.
               </p>
             </section>
 
@@ -212,10 +260,10 @@ const Index = () => {
                         <Button 
                           variant="hero" 
                           size="lg"
-                          onClick={analyzeImage}
+                          onClick={() => analyzeImage("upload")}
                           className="gap-2"
                         >
-                          Analyze Damage
+                          Analyze & Save
                           <ChevronRight className="w-4 h-4" />
                         </Button>
                       )}
@@ -233,7 +281,7 @@ const Index = () => {
                         <div className="space-y-1">
                           <p className="text-sm font-medium text-foreground">How it works</p>
                           <p className="text-sm text-muted-foreground">
-                            Upload a clear image of a road surface. Our AI will detect 5 types of damage with severity levels.
+                            Upload a clear image of a road surface. Our AI will detect 5 types of damage with severity levels and save the report to the database.
                           </p>
                         </div>
                       </div>
@@ -249,21 +297,28 @@ const Index = () => {
                 )}
               </div>
 
-              {/* Right - Legend */}
+              {/* Right - Stats & Legend */}
               <div className="space-y-6">
                 <DamageClassLegend />
 
                 <Card variant="glass">
                   <CardContent className="p-6 space-y-4">
-                    <h4 className="text-sm font-medium text-foreground">Quick Stats</h4>
+                    <div className="flex items-center gap-2">
+                      <Database className="w-4 h-4 text-primary" />
+                      <h4 className="text-sm font-medium text-foreground">Database Stats</h4>
+                    </div>
                     <div className="space-y-3 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Scans Today</span>
-                        <span className="font-mono text-foreground">{analysisCount}</span>
+                        <span className="text-muted-foreground">Total Reports</span>
+                        <span className="font-mono text-foreground">{stats.totalReports}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Damages Found</span>
-                        <span className="font-mono text-foreground">{totalDetections}</span>
+                        <span className="font-mono text-foreground">{stats.totalDamages}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Pending Review</span>
+                        <span className="font-mono text-foreground">{stats.byStatus.pending || 0}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Model</span>
@@ -284,9 +339,9 @@ const Index = () => {
               <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Camera className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Camera Capture</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Real-time Camera Capture</h2>
               <p className="text-muted-foreground mb-6">
-                Use your device camera to capture road images in real-time
+                Use your device camera to capture road images in real-time for instant AI analysis
               </p>
               <Button variant="hero" size="lg" onClick={() => setShowCamera(true)} className="gap-2">
                 <Camera className="w-5 h-5" />
@@ -299,8 +354,8 @@ const Index = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-foreground">Last Captured Image</h3>
-                    <Button variant="hero" onClick={analyzeImage} disabled={isAnalyzing}>
-                      {isAnalyzing ? "Analyzing..." : "Analyze"}
+                    <Button variant="hero" onClick={() => analyzeImage("camera")} disabled={isAnalyzing}>
+                      {isAnalyzing ? "Analyzing..." : "Analyze & Save"}
                     </Button>
                   </div>
                   <img src={selectedImage} alt="Captured" className="w-full rounded-xl" />
@@ -319,12 +374,12 @@ const Index = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-foreground">Damage Map</h2>
-                <p className="text-muted-foreground">View all reported road damages on map</p>
+                <h2 className="text-2xl font-bold text-foreground">Damage Heatmap</h2>
+                <p className="text-muted-foreground">View all reported road damages on the interactive map</p>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <MapPin className="w-4 h-4 text-primary" />
-                <span className="text-foreground font-medium">{damageMarkers.length} Reports</span>
+                <span className="text-foreground font-medium">{damageMarkers.length} Markers</span>
               </div>
             </div>
             
@@ -347,22 +402,53 @@ const Index = () => {
           </div>
         )}
 
+        {/* History Tab */}
+        {activeTab === "history" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">Report History</h2>
+                <p className="text-muted-foreground">View and manage all saved damage reports</p>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <History className="w-4 h-4 text-primary" />
+                <span className="text-foreground font-medium">{reports.length} Reports</span>
+              </div>
+            </div>
+
+            {isLoadingReports ? (
+              <Card variant="glass">
+                <CardContent className="p-8 text-center">
+                  <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+                  <p className="text-muted-foreground">Loading reports...</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <ReportsHistory 
+                reports={reports} 
+                onViewReport={setSelectedReport}
+                onUpdateStatus={updateReportStatus}
+              />
+            )}
+          </div>
+        )}
+
         {/* Stats Tab */}
         {activeTab === "stats" && (
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold text-foreground">Analytics Dashboard</h2>
-              <p className="text-muted-foreground">Comprehensive analysis statistics</p>
+              <p className="text-muted-foreground">Comprehensive analysis statistics from all reports</p>
             </div>
             
             <AdvancedStats
-              analysisCount={analysisCount}
-              totalDetections={totalDetections}
+              analysisCount={stats.totalReports}
+              totalDetections={stats.totalDamages}
               damagesByType={damagesByType}
               averageConfidence={averageConfidence}
             />
 
-            {analysisCount === 0 && (
+            {stats.totalReports === 0 && (
               <Card variant="glass">
                 <CardContent className="p-8 text-center">
                   <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -379,10 +465,15 @@ const Index = () => {
           </div>
         )}
 
+        {/* Dataset Tab */}
+        {activeTab === "dataset" && (
+          <YoloDatasetInfo />
+        )}
+
         {/* Footer */}
         <footer className="text-center py-8 mt-8 border-t border-border/50">
           <p className="text-sm text-muted-foreground">
-            Built for IIT Bombay • RDD2022 Dataset • Powered by Gemini AI
+            Built for IIT Bombay Hackathon • RDD2022 Dataset • Powered by Gemini 2.5 Vision AI
           </p>
         </footer>
       </main>
