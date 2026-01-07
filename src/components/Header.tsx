@@ -1,4 +1,4 @@
-import { MapPin, Menu, Scan, Settings, Camera, BarChart3 } from "lucide-react";
+import { MapPin, Menu, Scan, Camera, BarChart3, History, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
@@ -14,7 +14,9 @@ export const Header = ({ activeTab = "scanner", onTabChange }: HeaderProps) => {
     { id: "scanner", label: "Scanner", icon: Scan },
     { id: "camera", label: "Camera", icon: Camera },
     { id: "map", label: "Map", icon: MapPin },
+    { id: "history", label: "History", icon: History },
     { id: "stats", label: "Analytics", icon: BarChart3 },
+    { id: "dataset", label: "Dataset", icon: Database },
   ];
 
   return (
