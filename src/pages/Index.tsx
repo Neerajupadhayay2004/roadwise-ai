@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Scan, AlertTriangle, Info, ChevronRight, Camera, MapPin, BarChart3, Database, History, Layers } from "lucide-react";
+import { Scan, AlertTriangle, Info, ChevronRight, Camera, MapPin, BarChart3, Database, History, Layers, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Header } from "@/components/Header";
@@ -7,6 +7,7 @@ import { ImageUploader } from "@/components/ImageUploader";
 import { DamageResults } from "@/components/DamageResults";
 import { DamageClassLegend } from "@/components/DamageClassLegend";
 import { CameraCapture } from "@/components/CameraCapture";
+import { RealTimeDetector } from "@/components/RealTimeDetector";
 import { MapView } from "@/components/MapView";
 import { AdvancedStats } from "@/components/AdvancedStats";
 import { ReportsHistory } from "@/components/ReportsHistory";
@@ -36,6 +37,7 @@ const Index = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState<AnalysisResult | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [showRealTimeDetector, setShowRealTimeDetector] = useState(false);
   const [selectedReport, setSelectedReport] = useState<DamageReport | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -112,6 +114,44 @@ const Index = () => {
     setResults(null);
     setShowCamera(false);
   }, []);
+
+  // Handler for saving reports from real-time detection
+  const handleRealTimeSave = useCallback(async (
+    imageData: string, 
+    detections: Detection[], 
+    summary: any
+  ) => {
+    try {
+      toast.loading("Saving report...", { id: "save-realtime" });
+      
+      const imageUrl = await uploadImage(imageData);
+      
+      const avgConfidence = detections.length > 0
+        ? detections.reduce((sum, d) => sum + d.confidence, 0) / detections.length
+        : 0;
+
+      await createReport({
+        latitude: userLocation?.lat,
+        longitude: userLocation?.lng,
+        location_name: "Real-time Detection",
+        image_url: imageUrl,
+        overall_condition: summary.overall_condition,
+        total_damages: detections.length,
+        priority: summary.priority_level,
+        confidence_score: avgConfidence,
+        detections,
+        summary,
+        capture_method: "realtime",
+      });
+      
+      toast.dismiss("save-realtime");
+      toast.success("Report saved to database!");
+    } catch (error) {
+      toast.dismiss("save-realtime");
+      toast.error("Failed to save report");
+      console.error("Save error:", error);
+    }
+  }, [uploadImage, createReport, userLocation]);
 
   const analyzeImage = useCallback(async (captureMethod: string = "upload") => {
     if (!selectedImage) {
@@ -211,6 +251,15 @@ const Index = () => {
         <CameraCapture
           onCapture={handleCameraCapture}
           onClose={() => setShowCamera(false)}
+        />
+      )}
+
+      {/* Real-Time Detector Modal */}
+      {showRealTimeDetector && (
+        <RealTimeDetector
+          onClose={() => setShowRealTimeDetector(false)}
+          onSaveReport={handleRealTimeSave}
+          userLocation={userLocation}
         />
       )}
 
@@ -335,26 +384,77 @@ const Index = () => {
         {/* Camera Tab */}
         {activeTab === "camera" && (
           <div className="space-y-6">
-            <div className="text-center py-8">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Camera className="w-8 h-8 text-primary" />
+            {/* Real-Time Detection Mode */}
+            <div className="text-center py-6 md:py-8">
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20">
+                <Zap className="w-8 h-8 md:w-10 md:h-10 text-primary-foreground" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Real-time Camera Capture</h2>
-              <p className="text-muted-foreground mb-6">
-                Use your device camera to capture road images in real-time for instant AI analysis
+              <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2">Real-Time Damage Detection</h2>
+              <p className="text-sm md:text-base text-muted-foreground mb-6 max-w-lg mx-auto">
+                Advanced AI-powered detection with live bounding boxes, confidence scores, and automatic analysis
               </p>
-              <Button variant="hero" size="lg" onClick={() => setShowCamera(true)} className="gap-2">
-                <Camera className="w-5 h-5" />
-                Open Camera
-              </Button>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Button 
+                  variant="hero" 
+                  size="lg" 
+                  onClick={() => setShowRealTimeDetector(true)} 
+                  className="gap-2 w-full sm:w-auto"
+                >
+                  <Zap className="w-5 h-5" />
+                  Start Real-Time Detection
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  onClick={() => setShowCamera(true)} 
+                  className="gap-2 w-full sm:w-auto"
+                >
+                  <Camera className="w-5 h-5" />
+                  Single Capture
+                </Button>
+              </div>
             </div>
 
+            {/* Features Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              <Card variant="glass" className="p-3 md:p-4 text-center">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center mx-auto mb-2">
+                  <Scan className="w-5 h-5 text-blue-500" />
+                </div>
+                <p className="text-xs md:text-sm font-medium">Bounding Boxes</p>
+                <p className="text-[10px] md:text-xs text-muted-foreground">Real-time overlays</p>
+              </Card>
+              <Card variant="glass" className="p-3 md:p-4 text-center">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center mx-auto mb-2">
+                  <BarChart3 className="w-5 h-5 text-purple-500" />
+                </div>
+                <p className="text-xs md:text-sm font-medium">Confidence Scores</p>
+                <p className="text-[10px] md:text-xs text-muted-foreground">Per detection</p>
+              </Card>
+              <Card variant="glass" className="p-3 md:p-4 text-center">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center mx-auto mb-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+                </div>
+                <p className="text-xs md:text-sm font-medium">Severity Levels</p>
+                <p className="text-[10px] md:text-xs text-muted-foreground">Color-coded alerts</p>
+              </Card>
+              <Card variant="glass" className="p-3 md:p-4 text-center">
+                <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center mx-auto mb-2">
+                  <Database className="w-5 h-5 text-green-500" />
+                </div>
+                <p className="text-xs md:text-sm font-medium">Auto Save</p>
+                <p className="text-[10px] md:text-xs text-muted-foreground">Cloud storage</p>
+              </Card>
+            </div>
+
+            {/* Last Captured Image */}
             {selectedImage && (
               <Card variant="elevated">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
+                <CardContent className="p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
                     <h3 className="font-semibold text-foreground">Last Captured Image</h3>
-                    <Button variant="hero" onClick={() => analyzeImage("camera")} disabled={isAnalyzing}>
+                    <Button variant="hero" onClick={() => analyzeImage("camera")} disabled={isAnalyzing} className="w-full sm:w-auto">
                       {isAnalyzing ? "Analyzing..." : "Analyze & Save"}
                     </Button>
                   </div>
