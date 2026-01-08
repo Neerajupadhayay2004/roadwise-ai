@@ -1,73 +1,167 @@
-# Welcome to your Lovable project
+# **RoadWise AI – Automated Road Damage Detection System**
 
-## Project info
+🔗 **Live Demo:** [https://roadwise0.netlify.app/](https://roadwise0.netlify.app/)
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+RoadWise AI is an end-to-end **AI-powered road damage detection platform** designed to automatically identify and classify road surface defects such as cracks and potholes using computer vision and deep learning. The system aims to modernize road inspection by replacing slow, manual surveys with fast, scalable, and data-driven intelligence.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 📌 **Project Overview**
 
-**Use Lovable**
+Road infrastructure is critical to public safety and economic development, yet traditional inspection methods are manual, subjective, and inefficient. RoadWise AI leverages **state-of-the-art object detection models** to analyze road images and detect multiple types of surface damage with high accuracy.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+This project was developed as part of the **Crackathon (IIT Bombay)** and follows industry-standard evaluation metrics such as **Mean Average Precision (mAP)** to ensure real-world applicability.
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+## 🎯 **Key Objectives**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+* Automate road damage inspection using AI
+* Accurately localize and classify road defects
+* Reduce inspection cost, time, and human dependency
+* Enable scalable and consistent infrastructure monitoring
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## 🚀 **Features**
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+* 📸 Image-based road damage detection
+* 🧠 Deep learning–powered object detection
+* 📦 Multi-class damage classification
+* 📐 Bounding box localization
+* 🌐 Web-based interface for easy access
+* ⚡ Fast inference suitable for large-scale analysis
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+---
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 🧠 **Damage Categories Supported**
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+| Class ID | Damage Type        |
+| -------- | ------------------ |
+| 0        | Longitudinal Crack |
+| 1        | Transverse Crack   |
+| 2        | Alligator Crack    |
+| 3        | Other Corruption   |
+| 4        | Pothole            |
+
+---
+
+## 🛠 **Technology Stack**
+
+### **Frontend**
+
+* Web-based UI (deployed on Netlify)
+* Responsive design for ease of use
+
+### **AI / Machine Learning**
+
+* YOLO-based Object Detection Model
+* Transfer learning with pre-trained weights
+* Trained on RDD2022 dataset
+
+### **Deployment**
+
+* Netlify (Frontend hosting)
+* GitHub (Version control & source code)
+
+---
+
+## 📂 **Project Architecture (High-Level)**
+
+```
+User Image Upload
+        ↓
+Frontend Web App
+        ↓
+AI Model Inference
+        ↓
+Damage Detection & Classification
+        ↓
+Results Visualization
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📊 **Dataset Used**
 
-**Use GitHub Codespaces**
+* **Road Damage Detection Dataset 2022 (RDD2022)**
+* Over **47,000 high-resolution road images**
+* YOLO TXT annotation format
+* Multi-country, real-world road conditions
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+> ⚠️ Only the official dataset was used, strictly following competition rules.
 
-## What technologies are used for this project?
+---
 
-This project is built with:
+## ⚙️ **How It Works**
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. User accesses the RoadWise AI web application
+2. Road image is uploaded or provided as input
+3. The trained deep learning model processes the image
+4. Damage regions are detected and classified
+5. Results are displayed with bounding boxes and labels
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## 🧪 **Model Training Highlights**
 
-## Can I connect a custom domain to my Lovable project?
+* Data augmentation for robustness
+* Hyperparameter tuning (learning rate, batch size, image size)
+* Multi-scale detection for small and large defects
+* Validation using mAP metric
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 📈 **Evaluation Metric**
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+* **Mean Average Precision (mAP)**
+* Measures both localization accuracy and classification performance
+* Final evaluation performed on a private test set
+
+---
+
+## 🔮 **Future Enhancements**
+
+* Real-time video-based detection
+* Drone and mobile camera integration
+* GIS-based road mapping and analytics
+* Edge deployment for smart cities
+* Integration with government road maintenance systems
+
+---
+
+## 🧾 **Use Cases**
+
+* Smart city infrastructure monitoring
+* Municipal road maintenance planning
+* Highway safety assessment
+* Automated inspection using drones or vehicles
+
+---
+
+## 🏆 **Competition Context**
+
+Developed for **Crackathon – IIT Bombay**, focusing on:
+
+* Real-world AI problem solving
+* Scalable infrastructure solutions
+* Accuracy, robustness, and deployment readiness
+
+---
+
+## 👤 **Author**
+
+**Neeraj Upadhayay**
+📧 Email: [neerajupadhayay347@gmail.com](mailto:neerajupadhayay347@gmail.com)
+🎓 Domain: AI | Computer Vision | Cybersecurity
+
+---
+
+## 📄 **License**
+
+This project is intended for **educational, research, and hackathon purposes**.
+All rights reserved by the author.
+
+---
+
+Just tell me 🔥
