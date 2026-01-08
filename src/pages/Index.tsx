@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Scan, AlertTriangle, Info, ChevronRight, Camera, MapPin, BarChart3, Database, History, Layers, Zap } from "lucide-react";
+import { Scan, AlertTriangle, Info, ChevronRight, Camera, MapPin, BarChart3, Database, History, Layers, Zap, ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Header } from "@/components/Header";
@@ -13,6 +13,7 @@ import { AdvancedStats } from "@/components/AdvancedStats";
 import { ReportsHistory } from "@/components/ReportsHistory";
 import { ReportDetail } from "@/components/ReportDetail";
 import { YoloDatasetInfo } from "@/components/YoloDatasetInfo";
+import { BeforeAfterComparison } from "@/components/BeforeAfterComparison";
 import { useDamageReports, DamageReport, Detection, Summary } from "@/hooks/useDamageReports";
 import { toast } from "sonner";
 
@@ -38,6 +39,7 @@ const Index = () => {
   const [results, setResults] = useState<AnalysisResult | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [showRealTimeDetector, setShowRealTimeDetector] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
   const [selectedReport, setSelectedReport] = useState<DamageReport | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -268,6 +270,14 @@ const Index = () => {
         <ReportDetail
           report={selectedReport}
           onClose={() => setSelectedReport(null)}
+        />
+      )}
+
+      {/* Before/After Comparison Modal */}
+      {showComparison && (
+        <BeforeAfterComparison
+          reports={reports}
+          onClose={() => setShowComparison(false)}
         />
       )}
       
@@ -505,14 +515,26 @@ const Index = () => {
         {/* History Tab */}
         {activeTab === "history" && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-2xl font-bold text-foreground">Report History</h2>
-                <p className="text-muted-foreground">View and manage all saved damage reports</p>
+                <h2 className="text-xl md:text-2xl font-bold text-foreground">Report History</h2>
+                <p className="text-sm text-muted-foreground">View and manage all saved damage reports</p>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <History className="w-4 h-4 text-primary" />
-                <span className="text-foreground font-medium">{reports.length} Reports</span>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowComparison(true)}
+                  disabled={reports.length < 2}
+                  className="gap-2"
+                >
+                  <ArrowLeftRight className="w-4 h-4" />
+                  <span className="hidden sm:inline">Compare</span>
+                </Button>
+                <div className="flex items-center gap-2 text-sm bg-muted/30 px-3 py-1.5 rounded-full">
+                  <History className="w-4 h-4 text-primary" />
+                  <span className="text-foreground font-medium">{reports.length}</span>
+                </div>
               </div>
             </div>
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Camera, X, Scan, Video, VideoOff, Zap, AlertTriangle, CheckCircle, Loader2, Settings2 } from "lucide-react";
+import { Camera, X, Scan, Video, VideoOff, Zap, AlertTriangle, CheckCircle, Loader2, Settings2, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DetectionCanvas } from "./DetectionCanvas";
 import { DetectionStats } from "./DetectionStats";
+import { useAudioAlerts } from "@/hooks/useAudioAlerts";
 
 interface Detection {
   class_id: number;
@@ -62,6 +63,14 @@ export const RealTimeDetector = ({ onClose, onSaveReport, userLocation }: RealTi
   const [showSettings, setShowSettings] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [audioVolume, setAudioVolume] = useState([0.5]);
+
+  // Audio alerts hook
+  const { playMultipleDetections, cleanup: cleanupAudio } = useAudioAlerts({
+    enabled: audioEnabled,
+    volume: audioVolume[0],
+  });
 
   const startCamera = useCallback(async () => {
     try {
@@ -163,6 +172,12 @@ export const RealTimeDetector = ({ onClose, onSaveReport, userLocation }: RealTi
         setTotalDamagesFound(prev => prev + filteredDetections.length);
 
         if (filteredDetections.length > 0) {
+          // Play audio alert based on severity
+          const severities = filteredDetections.map((d: Detection) => 
+            d.severity as "critical" | "high" | "medium" | "low"
+          );
+          playMultipleDetections(severities);
+
           toast.success(`Detected ${filteredDetections.length} damage(s)`, {
             duration: 2000,
           });
@@ -219,8 +234,9 @@ export const RealTimeDetector = ({ onClose, onSaveReport, userLocation }: RealTi
   useEffect(() => {
     return () => {
       stopCamera();
+      cleanupAudio();
     };
-  }, [stopCamera]);
+  }, [stopCamera, cleanupAudio]);
 
   const switchCamera = useCallback(() => {
     setFacingMode(prev => prev === "user" ? "environment" : "user");
@@ -262,7 +278,7 @@ export const RealTimeDetector = ({ onClose, onSaveReport, userLocation }: RealTi
         {/* Settings Panel */}
         {showSettings && (
           <div className="p-3 md:p-4 border-b border-border/50 bg-muted/30 space-y-3 md:space-y-4 animate-fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs md:text-sm font-medium">Auto Detection</span>
@@ -300,6 +316,34 @@ export const RealTimeDetector = ({ onClose, onSaveReport, userLocation }: RealTi
                   className="w-full"
                 />
               </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    {audioEnabled ? <Volume2 className="w-3.5 h-3.5 text-primary" /> : <VolumeX className="w-3.5 h-3.5 text-muted-foreground" />}
+                    <span className="text-xs md:text-sm font-medium">Audio Alerts</span>
+                  </div>
+                  <Switch checked={audioEnabled} onCheckedChange={setAudioEnabled} />
+                </div>
+                <p className="text-[10px] md:text-xs text-muted-foreground">Play sounds on detection</p>
+              </div>
+
+              {audioEnabled && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs md:text-sm font-medium">Alert Volume</span>
+                    <span className="text-xs text-muted-foreground">{Math.round(audioVolume[0] * 100)}%</span>
+                  </div>
+                  <Slider
+                    value={audioVolume}
+                    onValueChange={setAudioVolume}
+                    min={0.1}
+                    max={1}
+                    step={0.1}
+                    className="w-full"
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}
