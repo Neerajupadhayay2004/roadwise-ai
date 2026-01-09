@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Scan, AlertTriangle, Info, ChevronRight, Camera, MapPin, BarChart3, Database, History, Layers, Zap, ArrowLeftRight } from "lucide-react";
+import { Scan, AlertTriangle, Info, ChevronRight, Camera, MapPin, BarChart3, Database, History, Layers, Zap, ArrowLeftRight, Route, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Header } from "@/components/Header";
@@ -14,6 +14,9 @@ import { ReportsHistory } from "@/components/ReportsHistory";
 import { ReportDetail } from "@/components/ReportDetail";
 import { YoloDatasetInfo } from "@/components/YoloDatasetInfo";
 import { BeforeAfterComparison } from "@/components/BeforeAfterComparison";
+import { RoutePlanner } from "@/components/RoutePlanner";
+import { AdminDashboard } from "@/components/AdminDashboard";
+import { InstallPWA } from "@/components/InstallPWA";
 import { useDamageReports, DamageReport, Detection, Summary } from "@/hooks/useDamageReports";
 import { toast } from "sonner";
 
@@ -40,6 +43,8 @@ const Index = () => {
   const [showCamera, setShowCamera] = useState(false);
   const [showRealTimeDetector, setShowRealTimeDetector] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
+  const [showRoutePlanner, setShowRoutePlanner] = useState(false);
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
   const [selectedReport, setSelectedReport] = useState<DamageReport | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -280,6 +285,27 @@ const Index = () => {
           onClose={() => setShowComparison(false)}
         />
       )}
+
+      {/* Route Planner Modal */}
+      {showRoutePlanner && (
+        <RoutePlanner
+          damageMarkers={damageMarkers}
+          onClose={() => setShowRoutePlanner(false)}
+        />
+      )}
+
+      {/* Admin Dashboard Modal */}
+      {showAdminDashboard && (
+        <AdminDashboard
+          reports={reports}
+          onClose={() => setShowAdminDashboard(false)}
+          onViewReport={setSelectedReport}
+          onRefresh={() => {}}
+        />
+      )}
+
+      {/* PWA Install Prompt */}
+      <InstallPWA />
       
       <main className="container mx-auto px-4 py-6">
         {/* Scanner Tab */}
@@ -482,14 +508,24 @@ const Index = () => {
         {/* Map Tab */}
         {activeTab === "map" && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-2xl font-bold text-foreground">Damage Heatmap</h2>
                 <p className="text-muted-foreground">View all reported road damages on the interactive map</p>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <MapPin className="w-4 h-4 text-primary" />
-                <span className="text-foreground font-medium">{damageMarkers.length} Markers</span>
+              <div className="flex items-center gap-2">
+                <Button variant="default" size="sm" onClick={() => setShowRoutePlanner(true)} className="gap-2">
+                  <Route className="w-4 h-4" />
+                  Safe Route
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowAdminDashboard(true)} className="gap-2">
+                  <Shield className="w-4 h-4" />
+                  Admin
+                </Button>
+                <div className="flex items-center gap-2 text-sm bg-muted/30 px-3 py-1.5 rounded-full">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  <span className="text-foreground font-medium">{damageMarkers.length}</span>
+                </div>
               </div>
             </div>
             
