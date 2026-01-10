@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 interface Detection {
+  id?: string;
   class_id: number;
   class_name: string;
   x_center: number;
@@ -14,13 +15,31 @@ interface Detection {
   confidence: number;
   severity: string;
   description: string;
+  estimated_length_cm?: number;
+  estimated_width_cm?: number;
+  estimated_depth_cm?: number;
+  estimated_area_sqm?: number;
+  cause?: string;
+  progression?: string;
+  repair_method?: string;
+  cost_category?: string;
+  safety_hazard?: boolean;
 }
 
 interface Summary {
   total_damages: number;
+  critical_count?: number;
+  high_count?: number;
+  medium_count?: number;
+  low_count?: number;
   overall_condition: string;
+  pci_estimate?: number;
   priority_level: string;
+  safety_score?: number;
   recommendation: string;
+  estimated_repair_cost_usd?: number;
+  deterioration_rate?: string;
+  next_inspection_days?: number;
 }
 
 interface DamageResultsProps {
@@ -32,8 +51,16 @@ const damageColors: Record<number, string> = {
   0: "damage-longitudinal",
   1: "damage-transverse",
   2: "damage-alligator",
-  3: "damage-other",
-  4: "damage-pothole",
+  3: "damage-pothole",
+  4: "damage-crosswalk",
+  5: "damage-whiteline",
+  6: "damage-manhole",
+  7: "damage-raveling",
+  8: "damage-rutting",
+  9: "damage-bleeding",
+  10: "damage-edge",
+  11: "damage-block",
+  12: "damage-patch",
 };
 
 const severityConfig: Record<string, { color: string; icon: typeof AlertTriangle; label: string }> = {
@@ -71,14 +98,15 @@ export const DamageResults = ({ detections, summary }: DamageResultsProps) => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Primary Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-3 rounded-lg bg-secondary/50">
               <p className="text-3xl font-bold text-foreground">{summary.total_damages}</p>
               <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">Damages Found</p>
             </div>
             <div className="text-center p-3 rounded-lg bg-secondary/50">
-              <p className="text-3xl font-bold text-primary">{detections.length}</p>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">Detections</p>
+              <p className="text-3xl font-bold text-primary">{summary.pci_estimate ?? '--'}</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">PCI Score</p>
             </div>
             <div className="text-center p-3 rounded-lg bg-secondary/50">
               <p className="text-lg font-bold text-foreground capitalize">{summary.priority_level}</p>
@@ -86,14 +114,61 @@ export const DamageResults = ({ detections, summary }: DamageResultsProps) => {
             </div>
             <div className="text-center p-3 rounded-lg bg-secondary/50">
               <p className="text-lg font-bold text-foreground">
-                {detections.length > 0 
-                  ? `${Math.round(detections.reduce((acc, d) => acc + d.confidence, 0) / detections.length * 100)}%`
-                  : "N/A"
+                {summary.safety_score !== undefined ? `${summary.safety_score}/10` : 
+                  detections.length > 0 
+                    ? `${Math.round(detections.reduce((acc, d) => acc + d.confidence, 0) / detections.length * 100)}%`
+                    : "N/A"
                 }
               </p>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">Avg Confidence</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">Safety Score</p>
             </div>
           </div>
+
+          {/* Severity Breakdown */}
+          {(summary.critical_count !== undefined || summary.high_count !== undefined) && (
+            <div className="grid grid-cols-4 gap-2">
+              <div className="text-center p-2 rounded bg-destructive/20 border border-destructive/30">
+                <p className="text-xl font-bold text-destructive">{summary.critical_count ?? 0}</p>
+                <p className="text-[10px] text-muted-foreground">Critical</p>
+              </div>
+              <div className="text-center p-2 rounded bg-orange-500/20 border border-orange-500/30">
+                <p className="text-xl font-bold text-orange-500">{summary.high_count ?? 0}</p>
+                <p className="text-[10px] text-muted-foreground">High</p>
+              </div>
+              <div className="text-center p-2 rounded bg-warning/20 border border-warning/30">
+                <p className="text-xl font-bold text-warning">{summary.medium_count ?? 0}</p>
+                <p className="text-[10px] text-muted-foreground">Medium</p>
+              </div>
+              <div className="text-center p-2 rounded bg-success/20 border border-success/30">
+                <p className="text-xl font-bold text-success">{summary.low_count ?? 0}</p>
+                <p className="text-[10px] text-muted-foreground">Low</p>
+              </div>
+            </div>
+          )}
+
+          {/* Cost & Inspection */}
+          {(summary.estimated_repair_cost_usd || summary.next_inspection_days) && (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              {summary.estimated_repair_cost_usd && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Est. Repair Cost</p>
+                  <p className="text-lg font-bold text-foreground">${summary.estimated_repair_cost_usd}</p>
+                </div>
+              )}
+              {summary.deterioration_rate && (
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Deterioration</p>
+                  <p className="text-sm font-semibold text-foreground capitalize">{summary.deterioration_rate}</p>
+                </div>
+              )}
+              {summary.next_inspection_days && (
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Next Inspection</p>
+                  <p className="text-lg font-bold text-foreground">{summary.next_inspection_days} days</p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
             <p className="text-sm font-medium text-foreground flex items-center gap-2">
@@ -145,15 +220,37 @@ export const DamageResults = ({ detections, summary }: DamageResultsProps) => {
                           {detection.description}
                         </p>
                         
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
-                            Position: ({(detection.x_center * 100).toFixed(1)}%, {(detection.y_center * 100).toFixed(1)}%)
+                            ({(detection.x_center * 100).toFixed(0)}%, {(detection.y_center * 100).toFixed(0)}%)
                           </span>
-                          <span>
-                            Size: {(detection.width * 100).toFixed(1)}% × {(detection.height * 100).toFixed(1)}%
-                          </span>
+                          {detection.estimated_length_cm && (
+                            <span>~{detection.estimated_length_cm}×{detection.estimated_width_cm}cm</span>
+                          )}
+                          {detection.estimated_depth_cm && (
+                            <span>Depth: {detection.estimated_depth_cm}cm</span>
+                          )}
+                          {detection.cause && (
+                            <Badge variant="outline" className="text-[10px] h-5 capitalize">
+                              {detection.cause.replace(/_/g, ' ')}
+                            </Badge>
+                          )}
+                          {detection.safety_hazard && (
+                            <Badge variant="destructive" className="text-[10px] h-5">
+                              <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
+                              Hazard
+                            </Badge>
+                          )}
                         </div>
+                        {detection.repair_method && (
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            Repair: <span className="capitalize">{detection.repair_method.replace(/_/g, ' ')}</span>
+                            {detection.cost_category && (
+                              <span className="ml-2">• Cost: <span className="capitalize">{detection.cost_category}</span></span>
+                            )}
+                          </p>
+                        )}
                       </div>
                       
                       <div className="text-right shrink-0">

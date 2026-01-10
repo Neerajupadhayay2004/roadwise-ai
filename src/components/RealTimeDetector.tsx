@@ -12,6 +12,7 @@ import { DetectionStats } from "./DetectionStats";
 import { useAudioAlerts } from "@/hooks/useAudioAlerts";
 
 interface Detection {
+  id?: string;
   class_id: number;
   class_name: string;
   x_center: number;
@@ -21,6 +22,15 @@ interface Detection {
   confidence: number;
   severity: string;
   description: string;
+  estimated_length_cm?: number;
+  estimated_width_cm?: number;
+  estimated_depth_cm?: number;
+  cause?: string;
+  progression?: string;
+  repair_method?: string;
+  cost_category?: string;
+  safety_hazard?: boolean;
+  timestamp?: string;
 }
 
 interface RealTimeDetectorProps {
@@ -29,12 +39,21 @@ interface RealTimeDetectorProps {
   userLocation?: { lat: number; lng: number } | null;
 }
 
+// Extended damage colors based on RDD2020 dataset classes
 const DAMAGE_COLORS: Record<number, string> = {
-  0: "#3b82f6", // Longitudinal - blue
-  1: "#8b5cf6", // Transverse - purple
-  2: "#f59e0b", // Alligator - amber
-  3: "#6b7280", // Other - gray
-  4: "#ef4444", // Pothole - red
+  0: "#3b82f6",  // D00 Longitudinal - blue
+  1: "#8b5cf6",  // D10 Transverse - purple
+  2: "#f59e0b",  // D20 Alligator - amber
+  3: "#ef4444",  // D40 Pothole - red
+  4: "#6366f1",  // D43 Cross Walk Blur - indigo
+  5: "#ec4899",  // D44 White Line Blur - pink
+  6: "#14b8a6",  // D50 Manhole - teal
+  7: "#f97316",  // RAV Raveling - orange
+  8: "#dc2626",  // RUT Rutting - red-600
+  9: "#eab308",  // BLD Bleeding - yellow
+  10: "#84cc16", // EDG Edge Cracking - lime
+  11: "#06b6d4", // BLK Block Cracking - cyan
+  12: "#a855f7", // PAT Patch Deterioration - purple
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -153,7 +172,10 @@ export const RealTimeDetector = ({ onClose, onSaveReport, userLocation }: RealTi
 
     try {
       const { data, error } = await supabase.functions.invoke('analyze-road', {
-        body: { image: imageData }
+        body: { 
+          image: imageData,
+          analysisMode: "realtime" // Enable fast detection mode
+        }
       });
 
       if (error) throw error;
