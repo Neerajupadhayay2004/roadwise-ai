@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Scan, AlertTriangle, Info, ChevronRight, Camera, MapPin, BarChart3, Database, History, Layers, Zap, ArrowLeftRight, Route, Shield } from "lucide-react";
+import { Scan, AlertTriangle, Info, ChevronRight, Camera, MapPin, BarChart3, Database, History, Layers, Zap, ArrowLeftRight, Route, Shield, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Header } from "@/components/Header";
@@ -17,6 +17,7 @@ import { BeforeAfterComparison } from "@/components/BeforeAfterComparison";
 import { RoutePlanner } from "@/components/RoutePlanner";
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { InstallPWA } from "@/components/InstallPWA";
+import { TrendAnalysisDashboard } from "@/components/TrendAnalysisDashboard";
 import { useDamageReports, DamageReport, Detection, Summary } from "@/hooks/useDamageReports";
 import { toast } from "sonner";
 
@@ -593,12 +594,19 @@ const Index = () => {
 
         {/* Stats Tab */}
         {activeTab === "stats" && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Analytics Dashboard</h2>
-              <p className="text-muted-foreground">Comprehensive analysis statistics from all reports</p>
+          <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">Analytics Dashboard</h2>
+                <p className="text-muted-foreground">Comprehensive analysis statistics and trends</p>
+              </div>
+              <div className="flex items-center gap-2 text-sm bg-muted/30 px-3 py-1.5 rounded-full">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                <span className="text-foreground font-medium">{stats.totalReports} Reports</span>
+              </div>
             </div>
             
+            {/* Quick Stats */}
             <AdvancedStats
               analysisCount={stats.totalReports}
               totalDetections={stats.totalDamages}
@@ -606,13 +614,16 @@ const Index = () => {
               averageConfidence={averageConfidence}
             />
 
+            {/* Trend Analysis Dashboard */}
+            <TrendAnalysisDashboard reports={reports} />
+
             {stats.totalReports === 0 && (
               <Card variant="glass">
                 <CardContent className="p-8 text-center">
                   <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="font-semibold text-foreground mb-2">No Data Yet</h3>
                   <p className="text-muted-foreground text-sm mb-4">
-                    Start analyzing road images to see statistics
+                    Start analyzing road images to see statistics and trends
                   </p>
                   <Button variant="outline" onClick={() => setActiveTab("scanner")}>
                     Go to Scanner
